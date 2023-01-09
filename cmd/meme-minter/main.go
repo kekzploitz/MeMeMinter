@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/kekzploit/MeMeMinter/pkg/checks"
 	"github.com/kekzploit/MeMeMinter/pkg/start"
 	"log"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"gopkg.in/telebot.v3/middleware"
 )
 
-func main() {
+func ServeBot() {
 	// initiate environment variable config file
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -38,7 +39,7 @@ func main() {
 	}
 
 	// Global-scoped middleware:
-	b.Use(middleware.Logger())
+	//b.Use(middleware.Logger())
 	b.Use(middleware.AutoRespond())
 
 	// Group-scoped middleware:
@@ -72,19 +73,28 @@ func main() {
 	b.Handle("/start", func(c tele.Context) error {
 
 		var (
-			// payload = c.Message().Payload
 			user = c.Sender()
-			// text = c.Text()
 		)
-		register := start.Start(user.FirstName, user.ID, mongoUri, walletApi)
-		if register {
-			msg := fmt.Sprintln("Registration successful")
+
+		userExists, _ := checks.CheckUserExists(user.ID)
+		if !userExists {
+			register, addressMsg := start.Start(user.FirstName, user.ID, mongoUri, walletApi)
+			if register {
+				msg := fmt.Sprintf("Welcome to MeMe Minter %s\n\nYour MeMe Minter BEAM address:%s\n\nUse the /usage command for instructions on how to use MeMe Minter", user.FirstName, addressMsg)
+				return c.Send(msg)
+			}
+
+			msg := fmt.Sprintln("Registration unsuccessful")
 			return c.Send(msg)
 		}
 
-		msg := fmt.Sprintln("Registration unsuccessful")
+		msg := fmt.Sprintf("Hi %s,\n\nYou're already registered with MeMe Minter, go change the world!", user.FirstName)
 		return c.Send(msg)
 	})
 
 	b.Start()
+}
+
+func main() {
+	ServeBot()
 }

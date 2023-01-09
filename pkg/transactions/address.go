@@ -6,16 +6,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 )
 
 type AddressCreate struct {
-	jsonpc string
-	id     int
-	result string
+	JsonRpc string `json:"jsonrpc"`
+	Id      int    `json:"id"`
+	Result  string `json:"result"`
 }
 
 func CreateAddress(userId int64, walletApi string) (bool, string) {
+
+	comment := fmt.Sprintf("User %v's address", userId)
 
 	jsonData := fmt.Sprintf(`{
     "jsonrpc": "2.0", 
@@ -28,11 +29,12 @@ func CreateAddress(userId int64, walletApi string) (bool, string) {
         "comment": "%s",
         "new_style_regular" : true
     }
-}`, strconv.FormatInt(userId, 10))
+}`, comment)
 
 	request, err := http.NewRequest("POST", walletApi, bytes.NewBuffer([]byte(jsonData)))
 	if err != nil {
 		fmt.Println("error") // return meaningful statement
+		return false, ""
 	}
 	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
@@ -40,6 +42,7 @@ func CreateAddress(userId int64, walletApi string) (bool, string) {
 	res, err := client.Do(request)
 	if err != nil {
 		fmt.Println("error") // return meaningful statement
+		return false, ""
 	}
 	// defer res.Body.Close()
 
@@ -48,9 +51,9 @@ func CreateAddress(userId int64, walletApi string) (bool, string) {
 	data := AddressCreate{}
 	_ = json.Unmarshal([]byte(body), &data)
 
-	if data.result != "" {
-		return true, "address created successfully"
+	if data.Result != "" {
+		return true, data.Result
 	}
 
-	return false, "unable to create address"
+	return false, data.Result
 }

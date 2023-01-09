@@ -44,19 +44,19 @@ func commitUser(mongoUri string, firstName string, userId int64, address string)
 	return false
 }
 
-func Start(firstName string, userId int64, mongoUri string, walletApi string) bool {
+func Start(firstName string, userId int64, mongoUri string, walletApi string) (bool, string) {
 
 	// create BEAM address
 	addressCreated, address := transactions.CreateAddress(userId, walletApi)
 	if addressCreated {
 		committed := commitUser(mongoUri, firstName, userId, address)
 		if committed {
-			return true
+			return true, address
 		} else {
-			fmt.Println("error committing user to DB") // return as string
-			return false
+			fmt.Println("error committing user to ..") // return as string
+			return false, "error committing user to.."
 		}
 	}
-	fmt.Println("error creating BEAM address") // return as string
-	return false
+	fmt.Println(address) // return as string
+	return false, "error creating BEAM address.."
 }
