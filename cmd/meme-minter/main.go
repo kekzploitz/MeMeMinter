@@ -41,7 +41,7 @@ func main() {
 	// Group-scoped middleware:
 	adminOnly := b.Group()
 
-	admins := []int64{5578680936} // kekzploit user ID
+	admins := []int64{5578680936} // list of telegram IDs
 	adminOnly.Use(middleware.Whitelist(admins...))
 
 	adminOnly.Handle("/totals", func(c tele.Context) error {
