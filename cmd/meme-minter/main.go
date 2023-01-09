@@ -5,29 +5,16 @@ import (
 	"github.com/kekzploit/MeMeMinter/pkg/checks"
 	price2 "github.com/kekzploit/MeMeMinter/pkg/price"
 	"github.com/kekzploit/MeMeMinter/pkg/start"
+	"github.com/kekzploit/MeMeMinter/pkg/transactions"
+	"github.com/spf13/viper"
 	"log"
 	"time"
-
-	"github.com/spf13/viper"
 
 	tele "gopkg.in/telebot.v3"
 	"gopkg.in/telebot.v3/middleware"
 )
 
-func ServeBot() {
-	// initiate environment variable config file
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("../../configs/")
-	err := viper.ReadInConfig()
-	if err != nil { // Handle errors reading the config file
-		panic(fmt.Errorf("fatal error config file: %w", err))
-	}
-
-	tgToken := viper.Get("TELEGRAM.APIKEY").(string)
-	mongoUri := viper.Get("MONGODB.URI").(string)
-	walletApi := viper.Get("BEAM.WALLETAPI").(string)
-	coingeckoUrl := viper.Get("COINGECKO.APIURL").(string)
+func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl string) {
 
 	pref := tele.Settings{
 		Token:  tgToken,
@@ -114,5 +101,20 @@ func ServeBot() {
 }
 
 func main() {
-	ServeBot()
+	// initiate environment variable config file
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("../../configs/")
+	err := viper.ReadInConfig()
+	if err != nil { // Handle errors reading the config file
+		panic(fmt.Errorf("fatal error config file: %w", err))
+	}
+
+	tgToken := viper.Get("TELEGRAM.APIKEY").(string)
+	mongoUri := viper.Get("MONGODB.URI").(string)
+	walletApi := viper.Get("BEAM.WALLETAPI").(string)
+	coingeckoUrl := viper.Get("COINGECKO.APIURL").(string)
+
+	go ServeBot(tgToken, mongoUri, walletApi, coingeckoUrl)
+	transactions.MonitorTx(walletApi, mongoUri)
 }

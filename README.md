@@ -17,8 +17,8 @@ Memes and creative imagery are more than mere pictures, they traverse the univer
 
 MeMe Minter uses [OpenAI's DALL·E 2 AI system](https://openai.com/dall-e-2/) to generate images. DALL·E 2 can create realistic images and art from a description in natural language.
 
-## Crypto powered
+## Powered by BEAM Privacy
 
-Fund your MeMe Minter War Chest with Crypto
+Fund your MeMe Minter War Chest with [BEAM](https://beam.me/), a private by default, confidential Cryptocurrency.
 
 ---

@@ -16,18 +16,18 @@ type AddressCreate struct {
 
 func CreateAddress(userId int64, walletApi string) (bool, string) {
 
-	comment := fmt.Sprintf("User %v's address", userId)
+	comment := fmt.Sprintf("%v", userId)
 
 	jsonData := fmt.Sprintf(`{
-    "jsonrpc": "2.0", 
+    "jsonrpc": "2.0",
     "id": 1,
-    "method": "create_address", 
+    "method": "create_address",
     "params":
     {
         "type": "regular",
         "expiration": "never",
         "comment": "%s",
-        "new_style_regular" : true
+        "new_style_regular": true
     }
 }`, comment)
 
