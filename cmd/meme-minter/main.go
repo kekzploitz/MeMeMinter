@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/kekzploit/MeMeMinter/pkg/start"
 	"log"
 	"time"
 
@@ -22,6 +23,8 @@ func main() {
 	}
 
 	tgToken := viper.Get("TELEGRAM.APIKEY").(string)
+	mongoUri := viper.Get("MONGODB.URI").(string)
+	walletApi := viper.Get("BEAM.WALLETAPI").(string)
 
 	pref := tele.Settings{
 		Token:  tgToken,
@@ -62,19 +65,24 @@ func main() {
 			user = c.Sender()
 		)
 
-		msg := fmt.Sprintf("Welcome %s", user.FirstName)
+		msg := fmt.Sprintf("Welcome %s\n\nUse /start command to register with MeMe Minter", user.FirstName)
 		return c.Send(msg)
 	})
 
 	b.Handle("/start", func(c tele.Context) error {
 
 		var (
-		// payload = c.Message().Payload
-		// user = c.Sender()
-		// text = c.Text()
+			// payload = c.Message().Payload
+			user = c.Sender()
+			// text = c.Text()
 		)
+		register := start.Start(user.FirstName, user.ID, mongoUri, walletApi)
+		if register {
+			msg := fmt.Sprintln("Registration successful")
+			return c.Send(msg)
+		}
 
-		msg := fmt.Sprintln("Hello, world!")
+		msg := fmt.Sprintln("Registration unsuccessful")
 		return c.Send(msg)
 	})
 
