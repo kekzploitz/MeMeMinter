@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/kekzploit/MeMeMinter/pkg/checks"
+	price2 "github.com/kekzploit/MeMeMinter/pkg/price"
 	"github.com/kekzploit/MeMeMinter/pkg/start"
 	"log"
 	"time"
@@ -26,6 +27,7 @@ func ServeBot() {
 	tgToken := viper.Get("TELEGRAM.APIKEY").(string)
 	mongoUri := viper.Get("MONGODB.URI").(string)
 	walletApi := viper.Get("BEAM.WALLETAPI").(string)
+	coingeckoUrl := viper.Get("COINGECKO.APIURL").(string)
 
 	pref := tele.Settings{
 		Token:  tgToken,
@@ -67,6 +69,22 @@ func ServeBot() {
 		)
 
 		msg := fmt.Sprintf("Welcome %s\n\nUse /start command to register with MeMe Minter", user.FirstName)
+		return c.Send(msg)
+	})
+
+	b.Handle("/rate", func(c tele.Context) error {
+
+		var (
+			user = c.Sender()
+		)
+
+		priceFetched, gbp, usd, eur := price2.GetPrice(coingeckoUrl)
+
+		if priceFetched {
+			msg := fmt.Sprintf("Hi %s,\n\nThe current price of BEAM:\n\nGBP: £%f\nUSD: $%f\nEUR: €%f\n\n Price data provided by coingecko.com", user.FirstName, gbp, usd, eur)
+			return c.Send(msg)
+		}
+		msg := fmt.Sprintf("Hi %s,\n\nUnfortunately we've been unable to fetch price data right now, try again soon", user.FirstName)
 		return c.Send(msg)
 	})
 
