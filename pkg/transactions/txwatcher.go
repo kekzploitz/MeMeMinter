@@ -51,7 +51,8 @@ type TxCheck struct {
 	Result  []Result `json:"result"`
 }
 
-func UpdateUserBalance(comment string, value int, balance int) {
+func UpdateUserBalance(commentInt int, txId string, value int, mongoUri string, balance int) {
+
 	newBalance := balance + value
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -67,7 +68,7 @@ func UpdateUserBalance(comment string, value int, balance int) {
 	podcastsCollection := client.Database("minter").Collection("users")
 	result, err := podcastsCollection.UpdateOne(
 		ctx,
-		bson.M{"user": strconv.Atoi(comment)}, // comment is userid from BEAM tx
+		bson.M{"user_id": commentInt}, // comment is userid from BEAM tx
 		bson.D{
 			{Key: "$set", Value: bson.D{{Key: "balance", Value: newBalance}}},
 		},
@@ -78,8 +79,8 @@ func UpdateUserBalance(comment string, value int, balance int) {
 	fmt.Printf("Updated %v Documents!\n", result.ModifiedCount)
 }
 
-func CommitTxDb(comment string, txId string, value int, balance int, mongoUri string) {
-	// instantiate mongodb client
+func GetUserBalance(commentInt int, value int, txId string, mongoUri string) {
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoUri))
@@ -91,18 +92,46 @@ func CommitTxDb(comment string, txId string, value int, balance int, mongoUri st
 	}()
 
 	collection := client.Database("minter").Collection("users")
+	filter := bson.D{{Key: "user_id", Value: commentInt}}
+
+	var result Users
+	err = collection.FindOne(context.TODO(), filter).Decode(&result)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			fmt.Println("updating users balance")
+		}
+	}
+	UpdateUserBalance(commentInt, txId, value, mongoUri, result.Balance)
+}
+
+func CommitTxDb(comment string, txId string, value int, mongoUri string) {
+	commentInt, _ := strconv.Atoi(comment)
+
+	// instantiate mongodb client
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoUri))
+
+	defer func() {
+		if err = client.Disconnect(ctx); err != nil {
+			panic(err)
+		}
+	}()
+
+	collection := client.Database("minter").Collection("transactions")
 
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	res, err := collection.InsertOne(ctx, bson.D{
-		{Key: "user_id", Value: strconv.Atoi(comment)},
+		{Key: "user_id", Value: commentInt},
 		{Key: "tx_id", Value: txId},
 		{Key: "spent", Value: value}})
 
 	id := res.InsertedID
 	if id != "" {
-		UpdateUserBalance(comment, value, balance)
+		GetUserBalance(commentInt, value, txId, mongoUri)
 	}
 }
 
@@ -125,7 +154,7 @@ func GetTxDb(comment string, txId string, value int, mongoUri string) {
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			CommitTxDb(comment, txId, value, result.Balance, mongoUri)
+			CommitTxDb(comment, txId, value, mongoUri)
 		}
 	}
 }
@@ -133,20 +162,20 @@ func GetTxDb(comment string, txId string, value int, mongoUri string) {
 func GetTxsApi(walletApi string, mongoUri string) {
 
 	jsonData := fmt.Sprintf(`{
-    "jsonrpc":"2.0",
-    "id": 8,
-    "method":"tx_list",
-    "params":
-    {
-        "filter" :
-        {
-            "status": 3
-        },
-        "rates": true,
-        "skip" : 0,
-        "count" : 10
-    }
-}`)
+		"jsonrpc":"2.0",
+		"id": 8,
+		"method":"tx_list",
+		"params":
+		{
+			"filter" :
+			{
+				"status": 3
+			},
+			"rates": true,
+			"skip" : 0,
+			"count" : 10
+		}
+	}`)
 
 	request, err := http.NewRequest("POST", walletApi, bytes.NewBuffer([]byte(jsonData)))
 	if err != nil {
@@ -169,7 +198,7 @@ func GetTxsApi(walletApi string, mongoUri string) {
 	_ = json.Unmarshal([]byte(body), &data)
 
 	for _, tx := range data.Result {
-		if tx.Income && tx.AssetId == 0 {
+		if tx.Income && tx.AssetId == 0 && tx.Comment != "default" {
 			GetTxDb(tx.Comment, tx.TxId, tx.Value, mongoUri)
 		}
 	}
