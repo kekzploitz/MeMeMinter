@@ -16,7 +16,7 @@ import (
 	"gopkg.in/telebot.v3/middleware"
 )
 
-func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl string, openaiApi string, openaiUrl string, beamCharge int, beamTxFee int) {
+func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl string, openaiApi string, openaiUrl string, beamCharge int, beamTxFee int, primaryAddress string) {
 
 	pref := tele.Settings{
 		Token:  tgToken,
@@ -68,21 +68,27 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 			payload = strings.TrimSpace(c.Text()[6:])
 		)
 
-		balanceEnough := checks.Balance(user.ID, mongoUri, beamCharge, beamTxFee)
-		if balanceEnough {
-			imageCreated, imageUrl := openai.CreateImage(openaiApi, openaiUrl, payload)
-			if imageCreated {
-				// DEDUCT BALANCE AND SEND BEAM TO EXTERNAL WALLET
-				go transactions.DeductAndSendTx(user.ID, mongoUri, beamCharge, beamTxFee, walletApi)
-				//
-				imageHtml := fmt.Sprintf("<a href=\"%s\">%s:\n%s</a>", imageUrl, user.FirstName, payload)
-				return c.Send(imageHtml, &tele.SendOptions{ParseMode: tele.ModeHTML})
+		userRegistered := checks.Registered(user.ID, mongoUri)
+		if userRegistered {
+			balanceEnough := checks.Balance(user.ID, mongoUri, beamCharge, beamTxFee)
+			if balanceEnough {
+				imageCreated, imageUrl := openai.CreateImage(openaiApi, openaiUrl, payload)
+				if imageCreated {
+					// DEDUCT BALANCE AND SEND BEAM TO EXTERNAL WALLET
+					go transactions.DeductAndSendTx(user.ID, mongoUri, beamCharge, beamTxFee, walletApi, primaryAddress)
+					//
+					imageHtml := fmt.Sprintf("<a href=\"%s\">%s:\n%s</a>", imageUrl, user.FirstName, payload)
+					return c.Send(imageHtml, &tele.SendOptions{ParseMode: tele.ModeHTML})
+				}
+				msg := fmt.Sprintf("Unable to create Image")
+				return c.Send(msg)
 			}
-			msg := fmt.Sprintf("Unable to create Image")
+			msg := fmt.Sprintf("You have insufficient funds!, top up your war chest!")
+			return c.Send(msg)
+		} else {
+			msg := fmt.Sprintf("Oops %s\n\nIt looks like you're not registered, to register, type the /start command", user.FirstName)
 			return c.Send(msg)
 		}
-		msg := fmt.Sprintf("You have insufficient funds!, top up your war chest!")
-		return c.Send(msg)
 
 	})
 
@@ -155,7 +161,8 @@ func main() {
 	openaiUrl := viper.Get("OPENAI.URL").(string)
 	beamCharge := viper.Get("BEAM.CHARGE").(int)
 	beamTxFee := viper.Get("BEAM.TXFEE").(int)
+	primaryAddress := viper.Get("BEAM.PRIMARYADDRESS").(string)
 
-	go ServeBot(tgToken, mongoUri, walletApi, coingeckoUrl, openaiApi, openaiUrl, beamCharge, beamTxFee)
+	go ServeBot(tgToken, mongoUri, walletApi, coingeckoUrl, openaiApi, openaiUrl, beamCharge, beamTxFee, primaryAddress)
 	transactions.MonitorTx(walletApi, mongoUri)
 }

@@ -19,9 +19,9 @@ type ExternalSend struct {
 }
 
 type SendExternal struct {
-	Id         int    `json:"id"`
-	Jsonrpc    string `json:"jsonrpc"`
-	ResultSend ExternalSend
+	Id         int          `json:"id"`
+	Jsonrpc    string       `json:"jsonrpc"`
+	ResultSend ExternalSend `json:"result"`
 }
 
 type Users struct {
@@ -32,7 +32,7 @@ type Users struct {
 	Balance       int    `bson:"balance"`
 }
 
-func WithdrawToExternal(walletApi string, beamCharge int, beamTxFee int) {
+func WithdrawToExternal(walletApi string, beamCharge int, beamTxFee int, walletAddress string, primaryAddress string) {
 	jsonData := fmt.Sprintf(`{
 		"jsonrpc":"2.0", 
 		"id": 2,
@@ -41,12 +41,13 @@ func WithdrawToExternal(walletApi string, beamCharge int, beamTxFee int) {
 		{
 			"value": %d,
 			"fee": %d,
-			"from": "",
+			"from": "387aa3176cab08823876432472b1b954315356bc203724623bb5fd624ed3948a80a",
+			"address": "%s",
 			"comment": "MeMe Mint External Withdrawal",
 			"asset_id": 0,
 			"offline": false
 		}
-	}`, beamCharge, beamTxFee)
+	}`, beamCharge, beamTxFee, primaryAddress)
 
 	request, err := http.NewRequest("POST", walletApi, bytes.NewBuffer([]byte(jsonData)))
 	if err != nil {
@@ -68,13 +69,17 @@ func WithdrawToExternal(walletApi string, beamCharge int, beamTxFee int) {
 	data := SendExternal{}
 	_ = json.Unmarshal([]byte(body), &data)
 
-	if data.ResultSend.TxId == "" {
-		fmt.Println("")
+	fmt.Println(data)
+
+	if data.ResultSend.TxId != "" {
+		fmt.Println(data.ResultSend.TxId)
+	} else {
+		fmt.Println("tx failed")
 	}
-	fmt.Println("")
+
 }
 
-func UpdateBalance(userId int64, balance int, beamCharge int, beamTxFee int, mongoUri string, walletApi string) {
+func UpdateBalance(userId int64, balance int, beamCharge int, beamTxFee int, mongoUri string, walletApi string, walletAddress string, primaryAddress string) {
 
 	totalCharge := beamCharge + beamTxFee
 	newBalance := balance - totalCharge
@@ -101,10 +106,10 @@ func UpdateBalance(userId int64, balance int, beamCharge int, beamTxFee int, mon
 		log.Fatal(err)
 	}
 	fmt.Printf("Updated %v Documents!\n", result.ModifiedCount)
-	WithdrawToExternal(walletApi, beamCharge, beamTxFee)
+	WithdrawToExternal(walletApi, beamCharge, beamTxFee, walletAddress, primaryAddress)
 }
 
-func GetBalance(userId int64, mongoUri string, beamCharge int, beamTxFee int, walletApi string) {
+func GetBalance(userId int64, mongoUri string, beamCharge int, beamTxFee int, walletApi string, primaryAddress string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoUri))
@@ -126,9 +131,9 @@ func GetBalance(userId int64, mongoUri string, beamCharge int, beamTxFee int, wa
 			fmt.Println("updating users balance")
 		}
 	}
-	UpdateBalance(userId, result.Balance, beamCharge, beamTxFee, mongoUri, walletApi)
+	UpdateBalance(userId, result.Balance, beamCharge, beamTxFee, mongoUri, walletApi, result.WalletAddress, primaryAddress)
 }
 
-func DeductAndSendTx(userId int64, mongoUri string, beamCharge int, beamTxFee int, walletApi string) {
-	GetBalance(userId, mongoUri, beamCharge, beamTxFee, walletApi)
+func DeductAndSendTx(userId int64, mongoUri string, beamCharge int, beamTxFee int, walletApi string, primaryAddress string) {
+	GetBalance(userId, mongoUri, beamCharge, beamTxFee, walletApi, primaryAddress)
 }
