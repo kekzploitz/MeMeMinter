@@ -3,18 +3,20 @@ package main
 import (
 	"fmt"
 	"github.com/kekzploit/MeMeMinter/pkg/checks"
+	"github.com/kekzploit/MeMeMinter/pkg/openai"
 	price2 "github.com/kekzploit/MeMeMinter/pkg/price"
 	"github.com/kekzploit/MeMeMinter/pkg/start"
 	"github.com/kekzploit/MeMeMinter/pkg/transactions"
 	"github.com/spf13/viper"
 	"log"
+	"strings"
 	"time"
 
 	tele "gopkg.in/telebot.v3"
 	"gopkg.in/telebot.v3/middleware"
 )
 
-func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl string) {
+func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl string, openaiApi string, openaiUrl string) {
 
 	pref := tele.Settings{
 		Token:  tgToken,
@@ -59,6 +61,21 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 		return c.Send(msg)
 	})
 
+	b.Handle("/create", func(c tele.Context) error {
+
+		var (
+			payload = strings.TrimSpace(c.Text()[8:])
+		)
+
+		imageCreated, imageUrl := openai.CreateImage(openaiApi, openaiUrl, payload)
+		if imageCreated {
+			return c.Send(imageUrl)
+		}
+
+		msg := fmt.Sprintf("Unable to create Image")
+		return c.Send(msg)
+	})
+
 	b.Handle("/rate", func(c tele.Context) error {
 
 		var (
@@ -97,6 +114,16 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 		return c.Send(msg)
 	})
 
+	b.Handle("/withdraw", func(c tele.Context) error {
+
+		var (
+			user = c.Sender()
+		)
+
+		msg := fmt.Sprintf("Uhhm.. %s,\n\nOne does not simply withdraw from MeMeMinter", user.FirstName)
+		return c.Send(msg)
+	})
+
 	b.Start()
 }
 
@@ -114,7 +141,9 @@ func main() {
 	mongoUri := viper.Get("MONGODB.URI").(string)
 	walletApi := viper.Get("BEAM.WALLETAPI").(string)
 	coingeckoUrl := viper.Get("COINGECKO.APIURL").(string)
+	openaiApi := viper.Get("OPENAI.APIKEY").(string)
+	openaiUrl := viper.Get("OPENAI.URL").(string)
 
-	go ServeBot(tgToken, mongoUri, walletApi, coingeckoUrl)
+	go ServeBot(tgToken, mongoUri, walletApi, coingeckoUrl, openaiApi, openaiUrl)
 	transactions.MonitorTx(walletApi, mongoUri)
 }
