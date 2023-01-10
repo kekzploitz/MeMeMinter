@@ -15,13 +15,13 @@ import (
 	"time"
 )
 
-type Users struct {
-	Id            int    `bson:"userid"`
-	Alias         string `bson:"alias"`
-	WalletAddress string `bson:"wallet_address"`
-	PaymentId     string `bson:"payment_id"`
-	Balance       int    `bson:"balance"`
-}
+//type Users struct {
+//	Id            int    `bson:"userid"`
+//	Alias         string `bson:"alias"`
+//	WalletAddress string `bson:"wallet_address"`
+//	PaymentId     string `bson:"payment_id"`
+//	Balance       int    `bson:"balance"`
+//}
 
 type Result struct {
 	AssetId          int           `json:"asset_id"`

@@ -16,7 +16,7 @@ import (
 	"gopkg.in/telebot.v3/middleware"
 )
 
-func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl string, openaiApi string, openaiUrl string) {
+func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl string, openaiApi string, openaiUrl string, beamCharge int, beamTxFee int) {
 
 	pref := tele.Settings{
 		Token:  tgToken,
@@ -61,19 +61,29 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 		return c.Send(msg)
 	})
 
-	b.Handle("/create", func(c tele.Context) error {
+	b.Handle("/meme", func(c tele.Context) error {
 
 		var (
-			payload = strings.TrimSpace(c.Text()[8:])
+			user    = c.Sender()
+			payload = strings.TrimSpace(c.Text()[6:])
 		)
 
-		imageCreated, imageUrl := openai.CreateImage(openaiApi, openaiUrl, payload)
-		if imageCreated {
-			return c.Send(imageUrl)
+		balanceEnough := checks.Balance(user.ID, mongoUri, beamCharge, beamTxFee)
+		if balanceEnough {
+			imageCreated, imageUrl := openai.CreateImage(openaiApi, openaiUrl, payload)
+			if imageCreated {
+				// DEDUCT BALANCE AND SEND BEAM TO EXTERNAL WALLET
+				go transactions.DeductAndSendTx(user.ID, mongoUri, beamCharge, beamTxFee, walletApi)
+				//
+				imageHtml := fmt.Sprintf("<a href=\"%s\">%s:\n%s</a>", imageUrl, user.FirstName, payload)
+				return c.Send(imageHtml, &tele.SendOptions{ParseMode: tele.ModeHTML})
+			}
+			msg := fmt.Sprintf("Unable to create Image")
+			return c.Send(msg)
 		}
-
-		msg := fmt.Sprintf("Unable to create Image")
+		msg := fmt.Sprintf("You have insufficient funds!, top up your war chest!")
 		return c.Send(msg)
+
 	})
 
 	b.Handle("/rate", func(c tele.Context) error {
@@ -143,7 +153,9 @@ func main() {
 	coingeckoUrl := viper.Get("COINGECKO.APIURL").(string)
 	openaiApi := viper.Get("OPENAI.APIKEY").(string)
 	openaiUrl := viper.Get("OPENAI.URL").(string)
+	beamCharge := viper.Get("BEAM.CHARGE").(int)
+	beamTxFee := viper.Get("BEAM.TXFEE").(int)
 
-	go ServeBot(tgToken, mongoUri, walletApi, coingeckoUrl, openaiApi, openaiUrl)
+	go ServeBot(tgToken, mongoUri, walletApi, coingeckoUrl, openaiApi, openaiUrl, beamCharge, beamTxFee)
 	transactions.MonitorTx(walletApi, mongoUri)
 }
