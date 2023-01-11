@@ -69,8 +69,6 @@ func WithdrawToExternal(walletApi string, beamCharge int, beamTxFee int, walletA
 	data := SendExternal{}
 	_ = json.Unmarshal([]byte(body), &data)
 
-	fmt.Println(data)
-
 	if data.ResultSend.TxId != "" {
 		fmt.Println(data.ResultSend.TxId)
 	} else {
