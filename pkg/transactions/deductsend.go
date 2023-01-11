@@ -76,7 +76,6 @@ func WithdrawToExternal(walletApi string, beamCharge int, beamTxFee int, walletA
 	} else {
 		fmt.Println("tx failed")
 	}
-
 }
 
 func UpdateBalance(userId int64, balance int, beamCharge int, beamTxFee int, mongoUri string, walletApi string, walletAddress string, primaryAddress string) {

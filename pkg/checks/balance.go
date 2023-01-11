@@ -34,7 +34,7 @@ func Balance(userId int64, mongoUri string, beamCharge int, beamTxFee int) bool 
 		return false
 	}
 
-	if result.Balance > (beamCharge + beamTxFee) {
+	if result.Balance > (beamCharge) {
 		return true
 	}
 	return false

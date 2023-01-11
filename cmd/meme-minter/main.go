@@ -7,6 +7,7 @@ import (
 	price2 "github.com/kekzploit/MeMeMinter/pkg/price"
 	"github.com/kekzploit/MeMeMinter/pkg/start"
 	"github.com/kekzploit/MeMeMinter/pkg/transactions"
+	"github.com/kekzploit/MeMeMinter/pkg/usage"
 	"github.com/spf13/viper"
 	"log"
 	"strings"
@@ -118,7 +119,8 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 			if balanceEnough {
 				imageCreated, imageUrl := openai.CreateImage(openaiApi, openaiUrl, payload)
 				if imageCreated {
-					// DEDUCT BALANCE AND SEND BEAM TO EXTERNAL WALLET
+					// Update usage
+					go usage.UpdateUsage(user.ID, mongoUri, beamCharge, beamTxFee)
 					go transactions.DeductAndSendTx(user.ID, mongoUri, beamCharge, beamTxFee, walletApi, primaryAddress)
 					//
 					imageHtml := fmt.Sprintf("<a href=\"%s\">%s:\n%s</a>", imageUrl, user.FirstName, payload)
