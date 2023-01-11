@@ -168,7 +168,7 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 		return c.Send(msg)
 	})
 
-	b.Handle("/startminting", func(c tele.Context) error {
+	b.Handle("/mintmemes", func(c tele.Context) error {
 
 		var (
 			user = c.Sender()
@@ -216,7 +216,7 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 			user = c.Sender()
 		)
 
-		msg := fmt.Sprintf("Hi %s\n\nSee below for MeMe Minters command list:\n\n/address - gets your deposit address\n/balance - gets your current balance\n/meme <description of image you want to create>\n/rate -  current BEAM price\n/start - register with MeMe Minter\n/withdraw - one simply doesnt withdraw from MeMe Minter\n/usage - get list of MeMe Minters commands", user.FirstName)
+		msg := fmt.Sprintf("Hi %s\n\nSee below for MeMe Minters command list:\n\n/address - gets your deposit address\n/balance - gets your current balance\n/meme <description of image you want to create>\n/rate -  current BEAM price\n/mintmemes - register with MeMe Minter\n/withdraw - one simply doesnt withdraw from MeMe Minter\n/usage - get list of MeMe Minters commands", user.FirstName)
 		return c.Send(msg)
 	})
 
