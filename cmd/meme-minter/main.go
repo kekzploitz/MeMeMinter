@@ -58,7 +58,7 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 			user = c.Sender()
 		)
 
-		msg := fmt.Sprintf("Welcome %s\n\nUse /start command to register with MeMe Minter and start changing the world, one MeMe at a time!", user.FirstName)
+		msg := fmt.Sprintf("Hi %s,\n\nHit /startminting to register with MeMeMinter and start changing the world, one MeMe at a time!", user.FirstName)
 		return c.Send(msg)
 	})
 
@@ -70,13 +70,20 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 
 		userRegistered := checks.Registered(user.ID, mongoUri)
 		if userRegistered {
-
 			address, info, failMsg := transactions.GetAddress(user.ID, mongoUri)
 			if address {
 				msg := fmt.Sprintf("Hi %s,\n\nYour address is:\n\n%s", user.FirstName, info)
-				return c.Send(msg)
+				//return c.Send(msg)
+
+				_, err := b.Send(user, msg)
+				if err != nil {
+					return err
+				}
+
+				return c.Send(fmt.Sprintf("Hey %s, check DM for address info", user.FirstName))
+
 			}
-			failedMsg := fmt.Sprintf("hey %s,\n\n%s to get address", failMsg, user.FirstName)
+			failedMsg := fmt.Sprintf("hey %s,\n\n%s to get address", user.FirstName, failMsg)
 			return c.Send(failedMsg)
 		}
 		msg := fmt.Sprintf("Oops %s\n\nIt looks like you're not registered, to register, type the /start command", user.FirstName)
@@ -95,7 +102,14 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 			balance, info, _ := transactions.BalanceCheck(user.ID, mongoUri)
 			if balance {
 				msg := fmt.Sprintf("Hi %s,\n\nYour balance is:\n\n%d GROTH", user.FirstName, info)
-				return c.Send(msg)
+
+				_, err := b.Send(user, msg)
+				if err != nil {
+					return err
+				}
+
+				return c.Send(fmt.Sprintf("Hey %s, check DM for balance info", user.FirstName))
+				//return c.Send(msg)
 			}
 
 			failedMsg := fmt.Sprintf("%s to get balance", info)
@@ -154,7 +168,7 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 		return c.Send(msg)
 	})
 
-	b.Handle("/start", func(c tele.Context) error {
+	b.Handle("/startminting", func(c tele.Context) error {
 
 		var (
 			user = c.Sender()
@@ -165,7 +179,12 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 			register, addressMsg := start.Start(user.FirstName, user.ID, mongoUri, walletApi)
 			if register {
 				msg := fmt.Sprintf("Welcome to MeMe Minter %s\n\nYour MeMe Minter BEAM address:%s\n\nUse the /usage command for instructions on how to use MeMe Minter", user.FirstName, addressMsg)
-				return c.Send(msg)
+				_, err := b.Send(user, msg)
+				if err != nil {
+					return err
+				}
+
+				return c.Send(fmt.Sprintf("Hey %s, check DM for info!", user.FirstName))
 			}
 
 			msg := fmt.Sprintln("Registration unsuccessful")
