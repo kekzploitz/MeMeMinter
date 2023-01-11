@@ -46,7 +46,6 @@ func NewImage(openaiApi string, openaiUrl string, payload string) (bool, string)
 	data := Response{}
 	_ = json.Unmarshal([]byte(body), &data)
 
-	fmt.Println(data.Data)
 	for _, url := range data.Data {
 		return true, url.Url
 	}

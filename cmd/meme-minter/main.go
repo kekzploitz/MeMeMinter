@@ -57,8 +57,52 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 			user = c.Sender()
 		)
 
-		msg := fmt.Sprintf("Welcome %s\n\nUse /start command to register with MeMe Minter", user.FirstName)
+		msg := fmt.Sprintf("Welcome %s\n\nUse /start command to register with MeMe Minter and start changing the world, one MeMe at a time!", user.FirstName)
 		return c.Send(msg)
+	})
+
+	b.Handle("/address", func(c tele.Context) error {
+
+		var (
+			user = c.Sender()
+		)
+
+		userRegistered := checks.Registered(user.ID, mongoUri)
+		if userRegistered {
+
+			address, info, failMsg := transactions.GetAddress(user.ID, mongoUri)
+			if address {
+				msg := fmt.Sprintf("Hi %s,\n\nYour address is:\n\n%s", user.FirstName, info)
+				return c.Send(msg)
+			}
+			failedMsg := fmt.Sprintf("hey %s,\n\n%s to get address", failMsg, user.FirstName)
+			return c.Send(failedMsg)
+		}
+		msg := fmt.Sprintf("Oops %s\n\nIt looks like you're not registered, to register, type the /start command", user.FirstName)
+		return c.Send(msg)
+
+	})
+
+	b.Handle("/balance", func(c tele.Context) error {
+
+		var (
+			user = c.Sender()
+		)
+
+		userRegistered := checks.Registered(user.ID, mongoUri)
+		if userRegistered {
+			balance, info, _ := transactions.BalanceCheck(user.ID, mongoUri)
+			if balance {
+				msg := fmt.Sprintf("Hi %s,\n\nYour balance is:\n\n%d GROTH", user.FirstName, info)
+				return c.Send(msg)
+			}
+
+			failedMsg := fmt.Sprintf("%s to get balance", info)
+			return c.Send(failedMsg)
+		}
+		msg := fmt.Sprintf("Oops %s\n\nIt looks like you're not registered, to register, type the /start command", user.FirstName)
+		return c.Send(msg)
+
 	})
 
 	b.Handle("/meme", func(c tele.Context) error {
@@ -136,7 +180,22 @@ func ServeBot(tgToken string, mongoUri string, walletApi string, coingeckoUrl st
 			user = c.Sender()
 		)
 
-		msg := fmt.Sprintf("Uhhm.. %s,\n\nOne does not simply withdraw from MeMeMinter", user.FirstName)
+		userRegistered := checks.Registered(user.ID, mongoUri)
+		if userRegistered {
+			msg := fmt.Sprintf("Uhhm.. %s,\n\nOne does not simply withdraw from MeMeMinter", user.FirstName)
+			return c.Send(msg)
+		}
+		msg := fmt.Sprintf("Oops %s\n\nIt looks like you're not registered, to register, type the /start command", user.FirstName)
+		return c.Send(msg)
+	})
+
+	b.Handle("/usage", func(c tele.Context) error {
+
+		var (
+			user = c.Sender()
+		)
+
+		msg := fmt.Sprintf("Hi %s\n\nSee below for MeMe Minters command list:\n\n/address - gets your deposit address\n/balance - gets your current balance\n/meme <description of image you want to create>\n/rate -  current BEAM price\n/start - register with MeMe Minter\n/withdraw - one simply doesnt withdraw from MeMe Minter\n/usage - get list of MeMe Minters commands", user.FirstName)
 		return c.Send(msg)
 	})
 
